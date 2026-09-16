@@ -79,11 +79,11 @@ const fmt = (n) => 'R$ ' + n.toFixed(2).replace('.', ',');
 const installments = (n) => 'ou 3x de ' + fmt(n / 3) + ' s/ juros';
 
 function getCart() {
-  try { return JSON.parse(localStorage.getItem('zaia_cart') || '[]'); }
+  try { return JSON.parse(localStorage.getItem('zaya_cart') || '[]'); }
   catch (e) { return []; }
 }
 function saveCart(cart) {
-  localStorage.setItem('zaia_cart', JSON.stringify(cart));
+  localStorage.setItem('zaya_cart', JSON.stringify(cart));
   renderCartCount();
 }
 function addToCart(productId, size) {
@@ -218,7 +218,7 @@ function renderHome() {
     <div class="wrap">
       <div class="section-head reveal">
         <div class="eyebrow">Nos siga</div>
-        <h2 class="title">@zaia.fashion</h2>
+        <h2 class="title">@zaya.fashion</h2>
       </div>
       <div class="social-grid reveal">
         ${[...PRODUCTS].filter(p => p.image).concat(PRODUCTS.filter(p=>p.image)).slice(0,6).map(p => `<img src="${p.image}" alt="${p.name}">`).join('')}
@@ -323,14 +323,81 @@ function toggleAcc(headEl) {
   headEl.parentElement.classList.toggle('open');
 }
 
-function renderCollectionPage() {
+function renderCollectionPage(query) {
+  const params = new URLSearchParams(query || '');
+  const categoria = params.get('categoria');
+  const soNovidades = params.get('novidades') === '1';
+
+  let lista = PRODUCTS;
+  let titulo = 'Todas as peças';
+  if (categoria) { lista = PRODUCTS.filter(p => p.category === categoria); titulo = categoria; }
+  if (soNovidades) { lista = lista.filter(p => p.badge === 'NOVO'); titulo = 'Novidades'; }
+
+  const filtros = ['Todas'].concat(CATEGORIES.map(c => c.name));
+  const ativo = categoria || (soNovidades ? 'Novidades' : 'Todas');
+
+  const chips = filtros.map(f => {
+    const href = f === 'Todas' ? '#/colecao' : `#/colecao?categoria=${encodeURIComponent(f)}`;
+    return `<a class="filter-chip${ativo === f ? ' active' : ''}" href="${href}">${f}</a>`;
+  }).join('') + `<a class="filter-chip${ativo === 'Novidades' ? ' active' : ''}" href="#/colecao?novidades=1">Novidades</a>`;
+
+  const grid = lista.length
+    ? `<div class="prod-grid">${lista.map(renderProductCard).join('')}</div>`
+    : `<div class="drawer-empty">Nenhuma peça nesta categoria por enquanto. <a href="#/colecao" style="text-decoration:underline">Ver tudo</a></div>`;
+
   return `
   <div class="wrap" style="padding:40px 0 80px">
     <div class="section-head reveal">
       <div class="eyebrow">Coleção Set. 2026</div>
-      <h2 class="title">Todas as peças</h2>
+      <h2 class="title">${titulo}</h2>
     </div>
-    <div class="prod-grid">${PRODUCTS.map(renderProductCard).join('')}</div>
+    <div class="filter-row">${chips}</div>
+    ${grid}
+  </div>`;
+}
+
+function renderSobrePage() {
+  return `
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Sobre a ZAYA</h1>
+      <p class="page-lead">Moda feminina pensada para durar mais que uma estação: alfaiataria precisa, tecidos selecionados e peças que combinam entre si.</p>
+    </div>
+    <div class="about-body">
+      <p>A ZAYA nasceu da ideia de que elegância não precisa ser complicada. Cada coleção é montada em torno de poucas peças-chave que conversam entre si, para que você monte vários looks com o que já tem no armário.</p>
+      <p>Trabalhamos com produção em pequenos lotes e controle de qualidade peça a peça. Se algo não servir, você tem 30 dias para trocar.</p>
+      <p><strong>Tamanhos:</strong> nossas peças vão do P ao GG. Na dúvida entre dois tamanhos, escolha o maior — o caimento é justo ao corpo.</p>
+      <p><strong>Cuidados:</strong> lavagem à mão ou ciclo delicado, água fria, secagem à sombra. Peças de alfaiataria preferem lavagem a seco.</p>
+      <p><strong>Entrega:</strong> enviamos para todo o Brasil. Frete grátis nas compras acima de R$350.</p>
+      <div style="margin-top:30px"><a class="btn btn-line" style="width:auto; display:inline-flex" href="#/contato">Falar com a gente</a></div>
+    </div>
+  </div>`;
+}
+
+function renderContatoPage() {
+  return `
+  <div class="wrap">
+    <div class="page-head">
+      <h1>Contato</h1>
+      <p class="page-lead">Dúvida sobre tamanho, prazo de entrega ou troca? Responde a gente por aqui — de segunda a sexta, das 9h às 18h.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <h3>WhatsApp</h3>
+        <p>Atendimento rápido para pedidos e dúvidas sobre tamanho.</p>
+        <a class="btn btn-dark" href="https://wa.me/5581999999999" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+      </div>
+      <div class="contact-card">
+        <h3>E-mail</h3>
+        <p>Para trocas, devoluções e parcerias.</p>
+        <a class="link" href="mailto:contato@zaya.com.br">contato@zaya.com.br</a>
+      </div>
+      <div class="contact-card">
+        <h3>Instagram</h3>
+        <p>Novidades, bastidores e looks da semana.</p>
+        <a class="link" href="https://instagram.com/zaya.fashion" target="_blank" rel="noopener">@zaya.fashion</a>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -402,13 +469,39 @@ function closeDrawer() {
 // ---------- Roteador ----------
 function navigateTo(path) { location.hash = '#/' + path; }
 
+// ---------- Menu mobile ----------
+function openMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-menu').setAttribute('aria-hidden', 'false');
+  document.getElementById('menu-open').setAttribute('aria-expanded', 'true');
+  document.getElementById('overlay').classList.add('open');
+  document.body.classList.add('no-scroll');
+}
+function closeMenu() {
+  const menu = document.getElementById('mobile-menu');
+  if (!menu) return;
+  menu.classList.remove('open');
+  menu.setAttribute('aria-hidden', 'true');
+  const btn = document.getElementById('menu-open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  const drawer = document.getElementById('drawer');
+  if (!drawer || !drawer.classList.contains('open')) {
+    document.getElementById('overlay').classList.remove('open');
+  }
+  document.body.classList.remove('no-scroll');
+}
+
 function router() {
-  const hash = location.hash.replace('#/', '') || '';
+  closeMenu();
+  const raw = location.hash.replace('#/', '') || '';
+  const [hash, query] = raw.split('?');
   const app = document.getElementById('app');
   let html;
   if (hash.startsWith('produto/')) html = renderProductPage(hash.replace('produto/', ''));
-  else if (hash.startsWith('colecao')) html = renderCollectionPage();
+  else if (hash.startsWith('colecao')) html = renderCollectionPage(query);
   else if (hash.startsWith('carrinho')) html = renderCartPage();
+  else if (hash.startsWith('sobre')) html = renderSobrePage();
+  else if (hash.startsWith('contato')) html = renderContatoPage();
   else html = renderHome();
 
   app.innerHTML = `<div class="page-fade">${html}</div>`;
@@ -449,5 +542,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('cart-open').addEventListener('click', openDrawer);
   document.getElementById('drawer-close').addEventListener('click', closeDrawer);
-  document.getElementById('overlay').addEventListener('click', closeDrawer);
+  document.getElementById('overlay').addEventListener('click', () => { closeDrawer(); closeMenu(); });
+  document.getElementById('menu-open').addEventListener('click', openMenu);
+  document.getElementById('menu-close').addEventListener('click', closeMenu);
+  document.querySelectorAll('#mobile-menu a').forEach(a => a.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeMenu(); closeDrawer(); }
+  });
 });
