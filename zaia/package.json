@@ -1,9 +1,0 @@
-{
-  "name": "zaia-site",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Site da ZAIA com checkout via Stripe (função serverless na Vercel)",
-  "dependencies": {
-    "stripe": "^16.12.0"
-  }
-}
